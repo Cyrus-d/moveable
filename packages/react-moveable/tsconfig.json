@@ -21,12 +21,27 @@
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
         "isolatedModules": true,
-        "noEmit": true
+        "noEmit": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/stories/*": [
+                "./stories/*"
+            ],
+            "@/react-moveable": [
+                "./src/react-moveable/"
+            ],
+            "moveable-helper": [
+                "./stories/moveable-helper/"
+            ]
+        }
     },
     "include": [
         "./src/**/*.ts",
         "./src/**/*.tsx",
         "./test/**/*.ts",
-        "./test/**/*.tsx"
+        "./test/**/*.tsx",
+        "./global.d.ts",
+        "./stories/**/*.ts",
+        "./stories/**/*.tsx"
     ]
 }

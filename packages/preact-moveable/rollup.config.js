@@ -7,7 +7,7 @@ const defaultOptions = {
     tsconfig: "tsconfig.build.json",
     external: {
         "@daybrush/utils": "utils",
-        "@daybrush/drag": "Dragger",
+        "gesto": "Gesto",
         "preact": "preact",
         "preact/compat": "preact/compat",
         "preact-compat": "preact-compat",
@@ -16,6 +16,10 @@ const defaultOptions = {
         "@egjs/agent": "eg.Agent",
         "@egjs/children-differ": "eg.ChildrenDiffer",
         "@moveable/matrix": "@moveable/matrix",
+        "@scena/dragscroll": "@scena/dragscroll",
+        "css-to-mat": "css-to-mat",
+        "overlap-area": "overlap-area",
+        "@scena/matrix": "@scena/matrix",
     },
     exports: "named",
     plugins: [

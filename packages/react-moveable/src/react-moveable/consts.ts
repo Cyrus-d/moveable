@@ -1,6 +1,6 @@
-import { prefixCSS } from "framework-utils";
 import getAgent from "@egjs/agent";
 import { IObject } from "@daybrush/utils";
+import { MoveableInterface } from "./types";
 
 function getSVGCursor(scale: number, degree: number) {
     return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${32 * scale}px" height="${32 * scale}px" viewBox="0 0 32 32" ><path d="M 16,5 L 12,10 L 14.5,10 L 14.5,22 L 12,22 L 16,27 L 20,22 L 17.5,22 L 17.5,10 L 20, 10 L 16,5 Z" stroke-linejoin="round" stroke-width="1.2" fill="black" stroke="white" style="transform:rotate(${degree}deg);transform-origin: 16px 16px"></path></svg>`;
@@ -9,59 +9,77 @@ function getCursorCSS(degree: number) {
     const x1 = getSVGCursor(1, degree);
     const x2 = getSVGCursor(2, degree);
     const degree45 = (Math.round(degree / 45) * 45) % 180;
-    const defaultCursor
-        = degree45 === 135
-        ? "nwse-resize"
-        : degree45 === 45
-        ? "nesw-resize"
-        : degree45 === 90
-        ? "ew-resize"
-        : "ns-resize"; // 135
+    let defaultCursor = "ns-resize";
+
+    if (degree45 === 135) {
+        defaultCursor = "nwse-resize";
+    } else if (degree45 === 45) {
+        defaultCursor = "nesw-resize";
+    } else if (degree45 === 90) {
+        defaultCursor = "ew-resize";
+    }
 
     // tslint:disable-next-line: max-line-length
     return `cursor:${defaultCursor};cursor: url('${x1}') 16 16, ${defaultCursor};cursor: -webkit-image-set(url('${x1}') 1x, url('${x2}') 2x) 16 16, ${defaultCursor};`;
 }
 
 export const agent = getAgent();
-export const isWebkit
-    = agent.os.name.indexOf("ios") > -1 || agent.browser.name.indexOf("safari") > -1;
+export const IS_WEBKIT = agent.browser.webkit;
+export const IS_WEBKIT605 = IS_WEBKIT && (() => {
+    const res = /applewebkit\/([^\s]+)/g.exec(navigator.userAgent.toLowerCase());
 
+    return res ? parseFloat(res[1]) < 605 : false;
+})();
 export const PREFIX = "moveable-";
-export const MOVEABLE_CSS = prefixCSS(PREFIX, `
+export const MOVEABLE_CSS = `
 {
-	position: fixed;
-	width: 0;
-	height: 0;
+	position: absolute;
+	width: 1px;
+	height: 1px;
 	left: 0;
 	top: 0;
-	z-index: 3000;
+    z-index: 3000;
+    --moveable-color: #4af;
+    --zoom: 1;
+    --zoompx: 1px;
+    will-change: transform;
 }
 .control-box {
     z-index: 0;
 }
 .line, .control {
+    position: absolute;
 	left: 0;
     top: 0;
     will-change: transform;
 }
 .control {
-	position: absolute;
 	width: 14px;
 	height: 14px;
 	border-radius: 50%;
 	border: 2px solid #fff;
 	box-sizing: border-box;
-	background: #4af;
+    background: #4af;
+    background: var(--moveable-color);
 	margin-top: -7px;
     margin-left: -7px;
+    border: 2px solid #fff;
     z-index: 10;
 }
+.padding {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100px;
+    height: 100px;
+    transform-origin: 0 0;
+}
 .line {
-	position: absolute;
 	width: 1px;
-	height: 1px;
-	background: #4af;
-	transform-origin: 0px 0.5px;
+    height: 1px;
+    background: #4af;
+    background: var(--moveable-color);
+	transform-origin: 0px 50%;
 }
 .line.dashed {
     box-sizing: border-box;
@@ -69,19 +87,13 @@ export const MOVEABLE_CSS = prefixCSS(PREFIX, `
 }
 .line.dashed.horizontal {
     border-top: 1px dashed #4af;
+    border-top-color: #4af;
+    border-top-color: var(--moveable-color);
 }
 .line.dashed.vertical {
     border-left: 1px dashed #4af;
-}
-.line.rotation-line {
-	height: 40px;
-	width: 1px;
-	transform-origin: 0.5px 39.5px;
-}
-.line.rotation-line .control {
-	border-color: #4af;
-	background:#fff;
-	cursor: alias;
+    border-left-color: #4af;
+    border-left-color: var(--moveable-color);
 }
 .line.vertical {
     transform: translateX(-50%);
@@ -95,13 +107,14 @@ export const MOVEABLE_CSS = prefixCSS(PREFIX, `
 .line.horizontal.bold {
     height: 2px;
 }
+
 .control.origin {
 	border-color: #f55;
 	background: #fff;
 	width: 12px;
 	height: 12px;
 	margin-top: -6px;
-	margin-left: -6px;
+    margin-left: -6px;
 	pointer-events: none;
 }
 ${[0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165].map(degree => `
@@ -121,7 +134,7 @@ ${[0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165].map(degree => `
     left: 0;
     display: none;
 }
-.area.avoid {
+.area.avoid, .area.pass {
     pointer-events: none;
 }
 .area.avoid+.area-pieces {
@@ -130,11 +143,12 @@ ${[0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165].map(degree => `
 .area-piece {
     position: absolute;
 }
-${isWebkit ? `:global svg *:before {
+
+${IS_WEBKIT605 ? `:global svg *:before {
 	content:"";
 	transform-origin: inherit;
 }` : ""}
-`);
+`;
 export const DRAGGER_EVENTS = ["dragstart", "drag", "dragend", "pinchstart", "pinch", "pinchend"];
 
 export const NEARBY_POS = [
@@ -148,6 +162,8 @@ export const TINY_NUM = 0.0000001;
 export const MIN_SCALE = 0.000000001;
 export const MAX_NUM = Math.pow(10, 10);
 export const MIN_NUM = -MAX_NUM;
+
+export const DIRECTIONS = ["n", "w", "s", "e", "nw", "ne", "sw", "se"];
 
 export const DIRECTION_INDEXES: IObject<number[]> = {
     n: [0, 1],
@@ -169,3 +185,18 @@ export const DIRECTION_ROTATIONS: IObject<number> = {
     sw: 225,
     se: 135,
 };
+
+export const MOVEABLE_METHODS: Array<keyof MoveableInterface> = [
+    "isMoveableElement",
+    "updateRect",
+    "updateTarget",
+    "destroy",
+    "dragStart",
+    "isInside",
+    "hitTest",
+    "setState",
+    "getRect",
+    "request",
+    "isDragging",
+    "getManager",
+];
